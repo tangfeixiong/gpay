@@ -26,7 +26,7 @@ protoc-grpc:
 		-I${GOPATHD}/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
 		-I${GOPATHD}/src/github.com/gogo/protobuf \
 		-I${GOPATHD}/src \
-		--gogo_out=Mgoogle/api/annotations.proto=github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis/google/api,Mgogoproto/gogo.proto=github.com/gogo/protobuf/gogoproto,Mpb/datatype.proto=github.com/tangfeixiong/go-to-kubernetes/$(PB_HOME)/pb,plugins=grpc:. \
+		--gogo_out=Mgoogle/api/annotations.proto=github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis/google/api,Mgogoproto/gogo.proto=github.com/gogo/protobuf/gogoproto,Mpb/datatype.proto=github.com/tangfeixiong/$(PB_HOME)/pb,plugins=grpc:. \
 		pb/service.proto pb/datatype.proto
 	@protoc -I/usr/local/include -I. \
 		-I${GOPATHP}/src \
@@ -35,16 +35,25 @@ protoc-grpc:
 		-I${GOPATHD}/src \
 		--grpc-gateway_out=logtostderr=true:. \
 		pb/service.proto
+	@protoc -I/usr/local/include -I. \
+		-I${GOPATHP}/src \
+		-I${GOPATHD}/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
+		-I${GOPATHD}/src/github.com/gogo/protobuf \
+		-I${GOPATHD}/src \
+		--swagger_out=logtostderr=true:. \
+		pb/service.proto
 
 go-bindata-web:
 	@pkg=webapp; src=static/...; output_file=pkg/ui/data/$${pkg}/datafile.go; \
 		go-bindata -nocompress -o $${output_file} -prefix $${PWD} -pkg $${pkg} $${src}
 
-go-bindata-spec:
-	@pkg=artifact; src=template/...; output_file=pkg/spec/$${pkg}/artifacts.go; \
-		go-bindata -nocompress -o $${output_file} -prefix $${PWD} -pkg $${pkg} $${src}
+go-bindata-swagger:
+	#@pkg=artifact; src=template/...; output_file=pkg/spec/$${pkg}/artifacts.go; \
+	#	go-bindata -nocompress -o $${output_file} -prefix $${PWD} -pkg $${pkg} $${src}
+	@go generate ./pb
+	@go-bindata -nocompress -o pkg/ui/data/swagger/datafile.go -prefix $${PWD} -pkg swagger third_party/swagger-ui/...
 
-go-build: go-bindata-spec
+go-build:
 	@CGO_ENABLED=0 go build -a -v -o ./bin/$${BIN_NAME} --installsuffix cgo -ldflags "-s" ./
 
 go-install:
@@ -57,4 +66,4 @@ docker-build:
 docker-push: docker-build
 	@docker push $(IMG_NS)/$(IMG_REPO):$(IMG_TAG)
 
-.PHONY: all protoc-grpc go-bindata go-build go-install go-bindata-web go-bindata-spec docker-build docker-push
+.PHONY: all protoc-grpc go-bindata-web go-bindata-spec go-build go-install docker-build docker-push

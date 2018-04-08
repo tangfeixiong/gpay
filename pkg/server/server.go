@@ -2,7 +2,7 @@ package server
 
 import (
 	"fmt"
-	"mime"
+	//"mime"
 	"net"
 	"net/http"
 	"os"
@@ -27,12 +27,13 @@ type Config struct {
 	InsecureAddress string
 	SecureHTTP      bool
 	LogLevel        int
+	Kubeconfig      string
 	//RuntimeConfig   hadoop.Config
 }
 
 type Server struct {
 	config *Config
-	ops    map[string]*operator.Operator
+	//ops    map[string]*operator.Operator
 	root   http.FileSystem
 	signal os.Signal
 }
@@ -40,14 +41,14 @@ type Server struct {
 func Start(config *Config) {
 	s := &Server{
 		config: config,
-		ops:    make(map[string]*operator.Operator),
+		//ops:    make(map[string]*operator.Operator),
 	}
-	op, err := operator.Run(config.RuntimeConfig)
-	if err != nil {
-		glog.Errorf("Start operator failed: %v", err)
-		return
-	}
-	s.ops["hadoop-operator"] = op
+	//	op, err := operator.Run(config.RuntimeConfig)
+	//	if err != nil {
+	//		glog.Errorf("Start operator failed: %v", err)
+	//		return
+	//	}
+	//s.ops["hadoop-operator"] = op
 	s.start()
 }
 
@@ -79,9 +80,9 @@ func (s *Server) start() {
 }
 
 func (s *Server) startGRPC(ch chan<- string) {
-	s := grpc.NewServer()
+	gs := grpc.NewServer()
 
-	pb.RegisterSimpleGRpcServiceServer(s, s)
+	pb.RegisterSimpleGRpcServiceServer(gs, s)
 	host := s.config.SecureAddress
 
 	l, err := net.Listen("tcp", host)
@@ -94,7 +95,7 @@ func (s *Server) startGRPC(ch chan<- string) {
 		time.Sleep(500)
 		ch <- host
 	}()
-	if err := s.Serve(l); nil != err {
+	if err := gs.Serve(l); nil != err {
 		panic(err)
 	}
 }
@@ -123,6 +124,7 @@ func (s *Server) startGateway(ch <-chan string) {
 
 	mux.Handle("/api", gwmux)
 	// serveSwagger(mux)
+	serveProm(mux)
 	s.serveWebPages(mux)
 
 	lstn, err := net.Listen("tcp", host)
@@ -134,7 +136,7 @@ func (s *Server) startGateway(ch <-chan string) {
 	//	if err := http.ListenAndServe(host, allowCORS(mux)); nil != err {
 	//		fmt.Fprintf(os.Stderr, "Server died: %s\n", err)
 	//	}
-	s := &http.Server{
+	gws := &http.Server{
 		Handler: func /*allowCORS*/ (h http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if origin := r.Header.Get("Origin"); origin != "" {
@@ -156,7 +158,7 @@ func (s *Server) startGateway(ch <-chan string) {
 		}(mux),
 	}
 
-	if err := s.Serve(lstn); nil != err {
+	if err := gws.Serve(lstn); nil != err {
 		fmt.Fprintln(os.Stderr, "Server died.", err.Error())
 	}
 }

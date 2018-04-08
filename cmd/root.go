@@ -38,7 +38,7 @@ func RootCommandFor(name string) *cobra.Command {
 	root.AddCommand(createServiceCommand(&config))
 	//root.AddCommand(createInitCommand(cfg))
 
-	root.PersistentFlags().StringVar(&cfg.Kubeconfig, "kubeconfig", "", "absolute path to the kubeconfig file. it means running out of cluster if supplied")
+	root.PersistentFlags().StringVar(&config.Kubeconfig, "kubeconfig", "", "absolute path to the kubeconfig file. it means running out of cluster if supplied")
 	if home := homeDir(); home != "" {
 		root.PersistentFlags().Lookup("kubeconfig").NoOptDefVal = filepath.Join(home, ".kube", "config")
 	}

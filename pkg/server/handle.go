@@ -1,7 +1,7 @@
 package server
 
 import (
-	"errors"
+	//"errors"
 	"fmt"
 	"io"
 	"mime"
@@ -16,15 +16,20 @@ import (
 	//"github.com/gorilla/websocket"
 	"github.com/philips/grpc-gateway-example/pkg/ui/data/swagger"
 
-	"golang.org/x/net/context"
+	//"golang.org/x/net/context"
 	"golang.org/x/net/websocket"
 
 	"github.com/tangfeixiong/go-to-bigdata/nps-wss/pkg/httpfs"
-	"github.com/tangfeixiong/go-to-kubernetes/hadoop-operator/pb"
-	"github.com/tangfeixiong/go-to-kubernetes/hadoop-operator/pkg/ui/data/webapp"
+	"github.com/tangfeixiong/gpay/pb"
+	"github.com/tangfeixiong/gpay/pkg/ui/data/webapp"
 )
 
 func serveSwagger(mux *http.ServeMux) {
+	glog.Info("Serving Swagger")
+	mux.HandleFunc("/swagger.json", func(w http.ResponseWriter, req *http.Request) {
+		io.Copy(w, strings.NewReader(pb.Swagger))
+	})
+
 	mime.AddExtensionType(".svg", "image/svg+xml")
 
 	// Expose files in third_party/swagger-ui/ on <host>/swagger-ui
@@ -58,6 +63,7 @@ func FileServer(root http.FileSystem) http.Handler {
 */
 
 func (s *Server) serveWebPages(mux *http.ServeMux) {
+	glog.Info("Serving HTML")
 	mime.AddExtensionType(".svg", "image/svg+xml")
 
 	// Expose files in third_party/swagger-ui/ on <host>/swagger-ui
@@ -75,14 +81,17 @@ func (s *Server) serveWebPages(mux *http.ServeMux) {
 	}
 	prefix := "/pay/"
 	mux.Handle(prefix, http.StripPrefix(prefix, s))
+}
 
+func (s *Server) serveWebSocket(mux *http.ServeMux) {
 	//	ws := websocket.Server{
 	//		Handshake: s.bootHandshake,
 	//		Handler:   s.handleWss,
 	//	}
 	//	mux.Handle("/ws", ws)
-	prefix += "ws"
+	prefix := "/ws"
 	mux.HandleFunc(prefix, s.WebsocketHandler)
+
 }
 
 func (f *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
